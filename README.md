@@ -1,1 +1,57 @@
 # GeoFS-AUTO-BRK-LVL
+
+A powerful Tampermonkey user script that adds **realistic auto brake functionality** to GeoFS. Ideal for airliners and some planes, the script streamlines your landing and rejected takeoff (RTO) procedures.
+
+It ensures your **brakes** engage the moment your wheels touch the ground — provided you've armed them — while also supporting **manual braking** when auto brake is disarmed.
+
+---
+
+## ✨ Features
+
+| Feature | Shortcut | Activation | Description |
+|---------|----------|------------|-------------|
+| **Auto Brake** | <kbd>Ctrl</kbd> + <kbd>F11</kbd> | On Touchdown / RTO | Cycles through **RTO → DISARM → 1 → 2 → 3 → 4 → MAX**. Once armed, brakes are applied automatically based on mode: <br>- **RTO**: triggers if thrust is cut to idle above ~36 m/s, holds MAX braking until ~8 m/s.<br>- **1–MAX**: applies fixed braking levels.<br>- **DISARM**: brakes are fully manual; pilot input is respected. |
+
+---
+
+## 🚀 Installation
+
+This script requires **Tampermonkey**.
+
+1. **Install Tampermonkey:** Get the extension for your browser.
+
+   * [Tampermonkey for Chrome](https://www.tampermonkey.net/index.php?browser=chrome&locale=en)
+   * [Tampermonkey for Edge](https://www.tampermonkey.net/index.php?browser=edge&locale=en)
+
+2. **Install the Script:**
+
+   * Click [**here**](https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/main/main.user.js)
+   * Tampermonkey will open a prompt to install the script.
+   * Click **Install**.
+   * Open GeoFS and enjoy!
+
+---
+
+## ⚙️ Usage Notes
+
+- **RTO Mode:** Realistic rejected takeoff logic. Brakes **latch at MAX** until aircraft slows to ~8 m/s (~16 knots, ~29 kilometers per hour, or ~18 miles per hour).
+- **DISARM Mode:** Auto brakes are disabled. Pilot can brake manually **without interference**.
+- **Auto Brake Levels 1–MAX:** Apply predefined braking levels automatically on touchdown.
+
+---
+
+## ⚠️ Licensing and Usage
+
+This project is released under the **Creative Commons Attribution-NoDerivatives 4.0 International Public License (CC BY-ND 4.0)**.
+
+* You are free to **share** the script in any medium or format.
+* You **must give credit** to the original author (A7md-Tint).
+* You **cannot remix, transform, or distribute derivative works**.
+* You may **modify for personal use** but cannot distribute modified versions.
+
+---
+
+## ❓ Need Help?
+
+Contact me via Discord: [Discord Server](https://discord.gg/MF5M5cAuS3)
+
