@@ -128,7 +128,7 @@
         await waitForGeoFS();
 
         setInterval(checkTouchdownLogic, 100);
-
+        document.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "F11") {
                 e.preventDefault();
                 toggleAutoBrake();
