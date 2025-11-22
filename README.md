@@ -4,6 +4,8 @@ A powerful Tampermonkey user script that adds **realistic auto brake functionali
 
 It ensures your **brakes** engage the moment your wheels touch the ground — provided you've armed them — while also supporting **manual braking** when auto brake is disarmed.
 
+This is a separate version of https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-BRK
+
 ---
 
 ## ✨ Features
