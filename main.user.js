@@ -5,9 +5,9 @@
 // @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @grant         none
-// @version       2.2
+// @version       3.2
 // @author        Ahmd-Tint
-// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX). Speedbird came through with a great idea regarding the brake levels. Publishing an edited version of this is not allowed.
+// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX). Speedbird came through with 2 great ideas regarding the brake levels and the newer visuals instead of relying on notifications. That's unrealistic! Publishing an edited version of this is not allowed.
 // ==/UserScript==
 
 (function () {
@@ -22,7 +22,10 @@
     // RTO LATCH FLAG
     let rtoActive = false;
 
-    // NOTIFICATION
+    // Custom overlay elements
+    let abrkOverlay = null;
+
+    // NOTIFICATION (kept for other messages)
     function showNotification(msg, type = "info", timeout = 3000) {
         if (window.geofs?.utils?.notification) {
             window.geofs.utils.notification.show(msg, { timeout, type });
@@ -53,7 +56,9 @@
         // When switching to DISARM, release RTO latch
         if (!isAutoBrakeArmed) rtoActive = false;
 
-        showNotification(`Auto Brake: ${mode} (Ctrl + F11)`);
+        // Update custom overlay
+        updateAbrkOverlay();
+
         console.log(`[AUTO BRK] Mode = ${mode}`);
     };
 
@@ -99,8 +104,8 @@
             if (rtoActive) {
                 brakeAmount = 1;
 
-                // RELEASE RTO BELOW 8 m/s
-                if (inst.groundSpeed < 8) {
+                // RELEASE RTO BELOW 0 m/s
+                if (inst.groundSpeed = 0) {
                     rtoActive = false;
                     console.log("[AUTO BRK] RTO RELEASED");
                 }
@@ -121,21 +126,86 @@
         }
 
         controls.brakes = brakeAmount;
+
     };
+
+    // Create custom HTML overlays (completely separate from GeoFS instruments)
+    function createCustomOverlays() {
+        try {
+
+            // Create ABRK overlay
+            abrkOverlay = document.createElement('div');
+            abrkOverlay.style.cssText = `
+                position: fixed;
+                bottom: 147.5px;
+                right: 11.5px;
+                width: 47.5px;
+                height: 47.5px;
+                background: rgba(0, 255, 0, 0.8);
+                color: white;
+                font-family: monospace;
+                font-size: 12px;
+                font-weight: bold;
+                text-align: center;
+                line-height: 25px;
+                border-radius: 5px;
+                z-index: 10000;
+                display: block;
+                pointer-events: none;
+            `;
+            abrkOverlay.innerHTML = 'ABRK<br/>RTO';
+            document.body.appendChild(abrkOverlay);
+
+            console.log("[ABRK] Custom overlays created.");
+        } catch (e) {
+            console.error("[ABRK] Error creating overlays:", e);
+        }
+    }
+
+    // Update ABRK overlay
+    function updateAbrkOverlay() {
+        if (!abrkOverlay) return;
+        try {
+            const mode = autoBrakeModes[autoBrakeIndex];
+            abrkOverlay.innerHTML = `ABRK<br/>${mode}`;
+
+            if (mode === "DISARM") {
+                abrkOverlay.style.display = 'none';
+            } else {
+                abrkOverlay.style.display = 'block';
+            }
+        } catch (e) {
+            // ignore
+        }
+    }
 
     // INIT
     async function init() {
         await waitForGeoFS();
 
+        // register setter in case instruments or UI or other scripts call it
+
+        // Create custom overlays (not using GeoFS instrument system at all)
+        createCustomOverlays();
+
+        // Initial overlay states
+        updateAbrkOverlay();
+
+        // Run the touchdown logic periodically
         setInterval(checkTouchdownLogic, 100);
-        document.addEventListener("keydown", (e) => {
+
+        // Key bindings
+        document.addEventListener("keydown", e => {
+
+            // Ctrl + F11 -> toggle autobrake modes
             if (e.ctrlKey && e.key === "F11") {
                 e.preventDefault();
                 toggleAutoBrake();
             }
         });
 
-        showNotification("AUTO BRK LVL Loaded!", "info", 4000);
+        // Keep the original "loaded" notification
+        showNotification("AUTO BRK Loaded!", "info", 4000);
         console.log("[SCRIPT] Full realistic system online.");
     }
 
