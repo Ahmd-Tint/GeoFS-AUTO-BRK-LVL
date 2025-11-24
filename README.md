@@ -16,6 +16,26 @@ This is a separate version of https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-B
 
 ---
 
+# GeoFS Real-World Autobrake Add-on
+
+This add-on dynamically modifies the brake forces within GeoFS to simulate the authentic autobrake system behavior and strength of specific real-world commercial airliners.
+
+---
+
+## :airplane: Currently Supported Aircraft
+
+The add-on automatically detects which aircraft you are flying and applies its corresponding IRL brake force settings and deceleration logic.
+---
+ * Boeing 737-700, ID: 4
+---
+If you are using an unsupported aircraft model in GeoFS (e.g., Airbus A350), the add-on defaults to the B737-700 settings. (Brake Strength)
+
+# 💬 Suggestions & Feedback
+If you would like to suggest adding authentic brake forces for another aircraft model, please join our [Discord Server](https://discord.gg/MF5M5cAuS3).
+We welcome suggestions to expand the realism of this add-on!
+
+---
+
 ## 🚀 Installation
 
 This script requires **Tampermonkey**.
@@ -57,3 +77,10 @@ This project is released under the **Creative Commons Attribution-NoDerivatives 
 
 Contact me via Discord: [Discord Server](https://discord.gg/MF5M5cAuS3)
 
+## Changelogs (for nerds only)
+
+* V1: Initial Release (GeoFS is missing the features this addon includes, that's why it was made)
+* V2.2 Added levels of braking. (Speedbird came up with this realistic idea!)
+* V3.3: Instead of notifications, added the following. "RTO" changes depending on the current auto-brake mode. (Speedbird came up with this realistic idea!)
+<img width="66" height="115" alt="image" src="https://github.com/user-attachments/assets/a67db3ac-cef9-41d7-baf7-601a3ded2ee2" />
+* V4.3: The default brake force is now the B737-700 setting when an unsupported aircraft is used.
