@@ -1,14 +1,16 @@
 // ==UserScript==
-// @name          AUTO-BRK-LVL
+// @name          AUTO BRK
 // @namespace     http://tampermonkey.net/
 // @match         https://*.geo-fs.com/*
 // @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @grant         none
-// @version       3.2
+// @version       4.3
 // @author        Ahmd-Tint
-// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX). Speedbird came through with 2 great ideas regarding the brake levels and the newer visuals instead of relying on notifications. That's unrealistic! Publishing an edited version of this is not allowed.
+// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX) Thanks to Speedbird for suggesting brake levels and new visuals. Publishing an edited version of this is not allowed.
 // ==/UserScript==
+
+
 
 (function () {
     'use strict';
@@ -112,21 +114,24 @@
             }
         }
 
-        // -------------------------------
+        /* -------------------------------
         // NORMAL MODES 1–MAX
-        // -------------------------------
+        */// -------------------------------
+        // Boeing 737-700 Brake Force
+        // Not "1" anymore, because that's unrealistic. Hoping for GeoFS to use brakeAmount in a unit like PSI. Not saying that the current one is bad but is still good.
         if (!rtoActive) {
             switch (mode) {
-                case "1": brakeAmount = 0.20; break;
-                case "2": brakeAmount = 0.35; break;
-                case "3": brakeAmount = 0.50; break;
-                case "4": brakeAmount = 0.75; break;
-                case "MAX": brakeAmount = 1.00; break;
+                case "1": brakeAmount = 1.19; break;
+                case "2": brakeAmount = 1.49; break;
+                case "3": brakeAmount = 2.15; break;
+                case "4": brakeAmount = 2.99; break;
+                case "MAX": brakeAmount = 4.19; break;
             }
         }
 
         controls.brakes = brakeAmount;
 
+        }
     };
 
     // Create custom HTML overlays (completely separate from GeoFS instruments)
@@ -183,8 +188,6 @@
     async function init() {
         await waitForGeoFS();
 
-        // register setter in case instruments or UI or other scripts call it
-
         // Create custom overlays (not using GeoFS instrument system at all)
         createCustomOverlays();
 
@@ -197,7 +200,7 @@
         // Key bindings
         document.addEventListener("keydown", e => {
 
-            // Ctrl + F11 -> toggle autobrake modes
+            // D
             if (e.ctrlKey && e.key === "F11") {
                 e.preventDefault();
                 toggleAutoBrake();
