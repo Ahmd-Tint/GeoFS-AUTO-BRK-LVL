@@ -26,9 +26,12 @@ This add-on dynamically modifies the brake forces within GeoFS to simulate the a
 
 The add-on automatically detects which aircraft you are flying and applies its corresponding IRL brake force settings and deceleration logic.
 ---
- * Boeing 737-700, ID: 4
+ * Boeing 737-700
+ * Boeing 777-300ER
+ * Airbus A350-900
+ * Airbus A380-800
 ---
-If you are using an unsupported aircraft model in GeoFS (e.g., Airbus A350), the add-on defaults to the B737-700 settings. (Brake Strength)
+If you are using an unsupported aircraft model in GeoFS (e.g., Concorde), the add-on defaults to the settings of the Airbus A350-900. (Brake Strength)
 
 # 💬 Suggestions & Feedback
 If you would like to suggest adding authentic brake forces for another aircraft model, please join our [Discord Server](https://discord.gg/MF5M5cAuS3).
@@ -56,8 +59,8 @@ This script requires **Tampermonkey**.
 
 ## ⚙️ Usage Notes
 
-- **RTO Mode:** Realistic rejected takeoff logic. Brakes **latch at MAX** until aircraft slows to ~8 m/s (~16 knots, ~29 kilometers per hour, or ~18 miles per hour).
-- **DISARM Mode:** Auto brakes are disabled. Pilot can brake manually **without interference**.
+- **RTO Mode:** Realistic rejected takeoff logic. Brakes **latch at MAX** until aircraft slows to ~1 m/s.
+- **DISARM Mode:** Auto brakes are disabled. Pilot can brake ** manually without interference**.
 - **Auto Brake Levels 1–MAX:** Apply predefined braking levels automatically on touchdown.
 
 ---
@@ -86,3 +89,12 @@ Contact me via Discord: [Discord Server](https://discord.gg/MF5M5cAuS3)
 
 * V4.3: The default brake force is now the B737-700 setting when an unsupported aircraft is used.
 * V5.3: Fixed auto-brake RTO brake strength (after rejecting takeoff)
+* V6.4:
+  The Auto Brake system now uses unique, tuned brake force values for more aircraft.
+  * **New Supported Aircraft:** Added custom brake profiles for:
+    * **Boeing 777-300ER**
+    * **Airbus A350-900**
+    * **Airbus A380-800**
+  * **Default Brake Force Update:** When flying an aircraft without a specific profile, the system will now default to using the brake force values of the ***Boeing 777-300ER***.
+  * The RTO mode's issues have been improved.
+* 
