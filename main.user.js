@@ -1,11 +1,11 @@
 // ==UserScript==
-// @name          AUTO BRK
+// @name          AUTO-BRK-LVL
 // @namespace     http://tampermonkey.net/
 // @match         https://*.geo-fs.com/*
-// @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
-// @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
+// @updateURL     https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-BRK/raw/refs/heads/main/main.user.js
+// @downloadURL   https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-BRK/raw/refs/heads/main/main.user.js
 // @grant         none
-// @version       5.3
+// @version       6.4
 // @author        Ahmd-Tint
 // @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX) Thanks to Speedbird for suggesting brake levels and new visuals. Publishing an edited version of this is not allowed.
 // ==/UserScript==
@@ -24,7 +24,6 @@
     // RTO LATCH FLAG
     let rtoActive = false;
 
-    // Custom overlay elements
     let abrkOverlay = null;
 
     // NOTIFICATION (kept for other messages)
@@ -94,8 +93,8 @@
             // TRIGGER RTO IF THRUST → IDLE at >36 m/s
             if (
                 !rtoActive &&
-                inst.groundSpeed > 36 &&             // >70 knots
-                inst.totalThrust < 6375 &&          // throttle pulled idle
+                inst.groundSpeed > 44 &&             // >85 knots
+                controls.throttle === 0 &&          // throttle pulled idle
                 inst.groundContact
             ) {
                 rtoActive = true;
@@ -104,34 +103,77 @@
 
             // HOLD MAX BRAKES IF ACTIVE
             if (rtoActive) {
-                brakeAmount = 4.19;
-
-                // RELEASE RTO BELOW 0 m/s
-                if (inst.groundSpeed = 0) {
+                if (geofs.aircraft.instance.id === "4") {
+                    brakeAmount = 4.19;
+                }
+                if (geofs.aircraft.instance.id === "25") {
+                    brakeAmount = 3.3;
+                }
+                if (geofs.aircraft.instance.id === "24" || geofs.aircraft.instance.id === "10") {
+                    brakeAmount = 2.5;
+                }
+                const ins2ID = geofs.aircraft.instance.id
+                if (ins2ID !== "10" && ins2ID !== "24" && ins2ID !== "25" && ins2ID !== "4") {
+                    brakeAmount = 3.3
+                }
+                // RELEASE RTO BELOW 1m/s
+                if (inst.groundSpeed < 1) {
                     rtoActive = false;
                     console.log("[AUTO BRK] RTO RELEASED");
                 }
             }
         }
 
-        /* -------------------------------
-        // NORMAL MODES 1–MAX
-        */// -------------------------------
-        // Boeing 737-700 Brake Force
-        // Not "1" anymore, because that's unrealistic. Hoping for GeoFS to use brakeAmount in a unit like PSI. Not saying that the current one is bad but is still good.
         if (!rtoActive) {
-            switch (mode) {
-                case "1": brakeAmount = 1.19; break;
-                case "2": brakeAmount = 1.49; break;
-                case "3": brakeAmount = 2.15; break;
-                case "4": brakeAmount = 2.99; break;
-                case "MAX": brakeAmount = 4.19; break;
+            if (geofs.aircraft.instance.id === "4") {
+                switch (mode) {
+                    case "1": brakeAmount = 1.19; break;
+                    case "2": brakeAmount = 1.49; break;
+                    case "3": brakeAmount = 2.15; break;
+                    case "4": brakeAmount = 2.99; break;
+                    case "MAX": brakeAmount = 4.19; break;
+                }
+            }
+            if (geofs.aircraft.instance.id === "25") {
+                switch (mode) {
+                    case "1": brakeAmount = 1.2; break;
+                    case "2": brakeAmount = 1.5; break;
+                    case "3": brakeAmount = 1.8; break;
+                    case "4": brakeAmount = 2.1; break;
+                    case "MAX": brakeAmount = 3.3; break;
+                }
+            }
+            if (geofs.aircraft.instance.id === "24") {
+                switch (mode) {
+                    case "1": brakeAmount = 0; break;
+                    case "2": brakeAmount = 0; break;
+                    case "3": brakeAmount = 1; break;
+                    case "4": brakeAmount = 1.3; break;
+                    case "MAX": brakeAmount = 2.5; break;
+                }
+            }
+            if (geofs.aircraft.instance.id === "10") {
+                switch (mode) {
+                    case "1": brakeAmount = 0; break;
+                    case "2": brakeAmount = 1; break;
+                    case "3": brakeAmount = 1.17; break;
+                    case "4": brakeAmount = 1.74; break;
+                    case "MAX": brakeAmount = 2.5; break;
+                }
+            }
+            const insID = geofs.aircraft.instance.id
+            if (insID !== "10" && insID !== "24" && insID !== "25" && insID !== "4") {
+                switch (mode) {
+                    case "1": brakeAmount = 1.2; break;
+                    case "2": brakeAmount = 1.5; break;
+                    case "3": brakeAmount = 1.8; break;
+                    case "4": brakeAmount = 2.1; break;
+                    case "MAX": brakeAmount = 3.3; break;
+                }
             }
         }
 
         controls.brakes = brakeAmount;
-
-        }
     };
 
     // Create custom HTML overlays (completely separate from GeoFS instruments)
@@ -191,7 +233,6 @@
         // Create custom overlays (not using GeoFS instrument system at all)
         createCustomOverlays();
 
-        // Initial overlay states
         updateAbrkOverlay();
 
         // Run the touchdown logic periodically
@@ -200,7 +241,7 @@
         // Key bindings
         document.addEventListener("keydown", e => {
 
-            // D
+            // Ctrl + F11 -> toggle autobrake modes
             if (e.ctrlKey && e.key === "F11") {
                 e.preventDefault();
                 toggleAutoBrake();
