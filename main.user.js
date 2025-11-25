@@ -2,8 +2,8 @@
 // @name          AUTO-BRK-LVL
 // @namespace     http://tampermonkey.net/
 // @match         https://*.geo-fs.com/*
-// @updateURL     https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-BRK/raw/refs/heads/main/main.user.js
-// @downloadURL   https://github.com/Ahmd-Tint/GeoFS-SPLR-ARM-AUTO-BRK/raw/refs/heads/main/main.user.js
+// @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
+// @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @grant         none
 // @version       6.4
 // @author        Ahmd-Tint
