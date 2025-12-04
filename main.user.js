@@ -5,7 +5,7 @@
 // @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @grant         none
-// @version       7.5
+// @version       8.6
 // @author        Ahmd-Tint
 // @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX) Thanks to Speedbird for suggesting brake levels and new visuals. Publishing an edited version of this is not allowed.
 // ==/UserScript==
@@ -23,7 +23,7 @@
 
     // RTO LATCH FLAG
     let rtoActive = false;
-
+    
     let abrkOverlay = null;
 
     // NOTIFICATION (kept for other messages)
@@ -47,6 +47,21 @@
         });
     }
 
+    // Check if instruments are visible
+    function areInstrumentsVisible() {
+        try {
+            // Check window.instruments.visible
+            if (window.instruments && typeof window.instruments.visible !== 'undefined') {
+                return window.instruments.visible;
+            }
+            // Fallback: check if instruments exist and are visible
+            return true; // default to visible if we can't determine
+        } catch (e) {
+            console.error("[ABRK] Error checking instrument visibility:", e);
+            return true; // default to visible on error
+        }
+    }
+    
     // AUTOBRAKE MODE CYCLE
     const toggleAutoBrake = () => {
         autoBrakeIndex = (autoBrakeIndex + 1) % autoBrakeModes.length;
@@ -63,7 +78,7 @@
         console.log(`[AUTO BRK] Mode = ${mode}`);
     };
 
-    // MAIN AUTOBRAKE + SPOILER LOGIC
+    // MAIN AUTOBRAKE
     const checkTouchdownLogic = () => {
         const inst = geofs.aircraft.instance;
 
@@ -107,29 +122,14 @@
                 case "4": brakeAmount = 0.8; break;
                 case "MAX": brakeAmount = 1; break;
             }
+        }
 
         controls.brakes = brakeAmount;
     };
 
-    // Check if instruments are visible
-    function areInstrumentsVisible() {
-        try {
-            // Check window.instruments.visible
-            if (window.instruments && typeof window.instruments.visible !== 'undefined') {
-                return window.instruments.visible;
-            }
-            // Fallback: check if instruments exist and are visible
-            return true; // default to visible if we can't determine
-        } catch (e) {
-            console.error("[ABRK] Error checking instrument visibility:", e);
-            return true; // default to visible on error
-        }
-    }
-
     // Create custom HTML overlays (completely separate from GeoFS instruments)
     function createCustomOverlays() {
         try {
-
             // Create ABRK overlay
             abrkOverlay = document.createElement('div');
             abrkOverlay.style.cssText = `
@@ -166,8 +166,10 @@
             const mode = autoBrakeModes[autoBrakeIndex];
             abrkOverlay.innerHTML = `ABRK<br/>${mode}`;
 
-            // Check if instruments are visible AND mode is not DISARM
-            if (mode === "DISARM" || !areInstrumentsVisible()) {
+            const instrumentsVisible = areInstrumentsVisible();
+
+            // Hide if DISARM OR instruments not visible
+            if (mode === "DISARM" || !instrumentsVisible) {
                 abrkOverlay.style.display = 'none';
             } else {
                 abrkOverlay.style.display = 'block';
@@ -184,13 +186,43 @@
         }, 500); // Check every 500ms for visibility changes
     }
 
+    function autoDisarm() {
+        const animm = geofs.aircraft.instance.animationValue;
+        const brkMode = autoBrakeModes[autoBrakeIndex];
+
+        // Determine how much brake force auto-brakes are currently applying
+        let expectedAutoBrake = 0;
+        switch (brkMode) {
+            case "RTO": expectedAutoBrake = rtoActive ? 1 : 0; break;
+            case "1": expectedAutoBrake = 0.2; break;
+            case "2": expectedAutoBrake = 0.4; break;
+            case "3": expectedAutoBrake = 0.6; break;
+            case "4": expectedAutoBrake = 0.8; break;
+            case "MAX": expectedAutoBrake = 1; break;
+            default: expectedAutoBrake = 0; break;
+        }
+
+        // Manual brakes are applied only if the pilot presses harder than auto-brake
+        const manualBrakeApplied = controls.brakes > expectedAutoBrake;
+
+        // Auto-disarm if manual brakes detected
+        if (brkMode !== "DISARM" && manualBrakeApplied) {
+            autoBrakeIndex = autoBrakeModes.indexOf("DISARM");
+            isAutoBrakeArmed = false;
+            rtoActive = false;
+            updateAbrkOverlay();
+            console.log("[AUTO BRK] Auto-DISARM (Manual brakes applied)");
+        }
+    }
+
     // INIT
     async function init() {
         await waitForGeoFS();
 
+
         // Create custom overlays (not using GeoFS instrument system at all)
         createCustomOverlays();
-
+        
         updateAbrkOverlay();
 
         // Start monitoring visibility
@@ -198,6 +230,7 @@
 
         // Run the touchdown logic periodically
         setInterval(checkTouchdownLogic, 100);
+        setInterval(autoDisarm, 50);
 
         // Key bindings
         document.addEventListener("keydown", e => {
@@ -211,7 +244,7 @@
 
         // Keep the original "loaded" notification
         showNotification("AUTO BRK Loaded!", "info", 4000);
-        console.log("[SCRIPT] Full realistic system online. V7.5");
+        console.log("[SCRIPT] Full realistic system online. V8.6");
     }
 
     init();
