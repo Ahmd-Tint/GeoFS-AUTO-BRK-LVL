@@ -1,41 +1,54 @@
 // ==UserScript==
-// @name          AUTO-BRK-LVL
-// @namespace     http://tampermonkey.net/
-// @match         https://*.geo-fs.com/*
+// @name          AUTO-BRK-LVL
+// @namespace     http://tampermonkey.net/
+// @match         https://*.geo-fs.com/*
 // @updateURL     https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
 // @downloadURL   https://github.com/Ahmd-Tint/GeoFS-AUTO-BRK-LVL/raw/refs/heads/main/main.user.js
-// @grant         none
-// @version       8.6
-// @author        Ahmd-Tint
-// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX) Thanks to Speedbird for suggesting brake levels and new visuals. Publishing an edited version of this is not allowed.
+// @grant         none
+// @version       8.7
+// @author        Ahmd-Tint
+// @description   Auto Brake with full mode cycling (RTO, DISARM, 1, 2, 3, 4, MAX).
 // ==/UserScript==
-
-
 
 (function () {
     'use strict';
 
-    // AUTOBRAKE MODES
-    const autoBrakeModes = ["RTO", "DISARM", "1", "2", "3", "4", "MAX"];
-    let autoBrakeIndex = 0; // default = RTO
+    const DEBUG = false;
+    const CHECK_INTERVAL_MS = 50;
 
+    const autoBrakeModes = ["RTO", "DISARM", "1", "2", "3", "4", "MAX"];
+    let autoBrakeIndex = 0;
     let isAutoBrakeArmed = true;
 
-    // RTO LATCH FLAG
     let rtoActive = false;
-    
+
+    let deployedThisLanding = false;
+
     let abrkOverlay = null;
 
-    // NOTIFICATION (kept for other messages)
-    function showNotification(msg, type = "info", timeout = 3000) {
-        if (window.geofs?.utils?.notification) {
-            window.geofs.utils.notification.show(msg, { timeout, type });
-        } else if (window.ui?.notification) {
-            window.ui.notification.show(msg, { timeout, type });
-        }
+
+    function log(...args) {
+        if (DEBUG) console.log('[ABRK]', ...args);
+    }
+    function info(...args) {
+        console.log('[ABRK]', ...args);
+    }
+    function warn(...args) {
+        console.warn('[ABRK]', ...args);
     }
 
-    // WAIT FOR GEOFS LOADING
+
+    function showNotification(msg, type = "info", timeout = 3000) {
+        try {
+            if (window.geofs?.utils?.notification) {
+                window.geofs.utils.notification.show(msg, { timeout, type });
+            } else if (window.ui?.notification) {
+                window.ui.notification.show(msg, { timeout, type });
+            }
+        } catch (e) { return;; }
+    }
+
+
     async function waitForGeoFS() {
         return new Promise(resolve => {
             const interval = setInterval(() => {
@@ -47,90 +60,112 @@
         });
     }
 
-    // Check if instruments are visible
+
     function areInstrumentsVisible() {
         try {
-            // Check window.instruments.visible
             if (window.instruments && typeof window.instruments.visible !== 'undefined') {
                 return window.instruments.visible;
             }
-            // Fallback: check if instruments exist and are visible
-            return true; // default to visible if we can't determine
+            return true;
         } catch (e) {
-            console.error("[ABRK] Error checking instrument visibility:", e);
-            return true; // default to visible on error
+            log("Error checking instruments visibility:", e);
+            return true;
         }
     }
-    
-    // AUTOBRAKE MODE CYCLE
+
     const toggleAutoBrake = () => {
         autoBrakeIndex = (autoBrakeIndex + 1) % autoBrakeModes.length;
         const mode = autoBrakeModes[autoBrakeIndex];
 
         isAutoBrakeArmed = mode !== "DISARM";
 
-        // When switching to DISARM, release RTO latch
+
         if (!isAutoBrakeArmed) rtoActive = false;
 
-        // Update custom overlay
+
         updateAbrkOverlay();
 
-        console.log(`[AUTO BRK] Mode = ${mode}`);
+        info(`Mode = ${mode}`);
     };
 
-    // MAIN AUTOBRAKE
+
+    function isOnGround(inst) {
+        try {
+            if (!inst) return false;
+            const gc = inst.groundContact;
+            if (Array.isArray(gc)) {
+                return gc.some(x => x === true);
+            } else {
+                return gc === true;
+            }
+        } catch (e) {
+            return !!(inst && inst.groundContact);
+        }
+    }
+
+
     const checkTouchdownLogic = () => {
-        const inst = geofs.aircraft.instance;
+        try {
+            const inst = geofs.aircraft.instance;
+            if (!inst) return;
 
-        // -------------------------------
-        // DISARM MODE → MANUAL BRAKING
-        // -------------------------------
-        if (!isAutoBrakeArmed) {
-            return; // do not touch brakes, allow pilot full control
-        }
+            const onGround = isOnGround(inst);
+            // const armed = inst.animationValue && inst.animationValue.spoilerArming === 1;
 
-        const mode = autoBrakeModes[autoBrakeIndex];
-        let brakeAmount = 0;
+/*
+            if (!onGround && deployedThisLanding) {
+                deployedThisLanding = false;
+                log('Airborne again — reset deployedThisLanding flag');
+            }
+*/
 
-        // -------------------------------
-        // RTO MODE WITH REALISTIC BEHAVIOR
-        // -------------------------------
-        if (mode === "RTO") {
+            if (!isAutoBrakeArmed) {
 
-            // TRIGGER RTO IF THRUST → IDLE at >36 m/s
-            if (
-                !rtoActive &&
-                inst.groundSpeed > 44 &&             // >85 knots
-                controls.throttle === 0 &&          // throttle pulled idle
-                inst.groundContact
-            ) {
-                rtoActive = true;
-                console.log("[AUTO BRK] RTO ACTIVATED");
+                return;
             }
 
-            // HOLD MAX BRAKES IF ACTIVE
-            if (rtoActive) {
-                brakeAmount = 1;
-            }
-        }
 
-        if (!rtoActive) {
-            switch (mode) {
-                case "1": brakeAmount = 0.2; break;
-                case "2": brakeAmount = 0.4; break;
-                case "3": brakeAmount = 0.6; break;
-                case "4": brakeAmount = 0.8; break;
-                case "MAX": brakeAmount = 1; break;
-            }
-        }
+            const mode = autoBrakeModes[autoBrakeIndex] || "DISARM";
+            let brakeAmount = 0;
 
-        controls.brakes = brakeAmount;
+            if (mode === "RTO") {
+
+                if (!rtoActive && inst.groundSpeed > 44 && controls.throttle === 0 && onGround) {
+                    rtoActive = true;
+                    info('RTO ACTIVATED');
+                }
+                if (rtoActive) {
+                    brakeAmount = 1;
+                }
+            }
+
+            if (!rtoActive) {
+                switch (mode) {
+                    case "1": brakeAmount = 0.2; break;
+                    case "2": brakeAmount = 0.4; break;
+                    case "3": brakeAmount = 0.6; break;
+                    case "4": brakeAmount = 0.8; break;
+                    case "MAX": brakeAmount = 1; break;
+                    default: brakeAmount = 0; break;
+                }
+            }
+
+
+            try {
+                controls.brakes = brakeAmount;
+            } catch (e) {
+                log('Unable to set controls.brakes', e);
+            }
+
+        } catch (e) {
+            console.error('[ABRK] checkTouchdownLogic fatal error', e);
+        }
     };
 
-    // Create custom HTML overlays (completely separate from GeoFS instruments)
+
     function createCustomOverlays() {
         try {
-            // Create ABRK overlay
+            
             abrkOverlay = document.createElement('div');
             abrkOverlay.style.cssText = `
                 position: fixed;
@@ -155,97 +190,78 @@
 
             console.log("[ABRK] Custom overlays created.");
         } catch (e) {
-            console.error("[ABRK] Error creating overlays:", e);
+            console.error('[ABRK] Error creating overlays:', e);
         }
     }
 
-    // Update ABRK overlay
     function updateAbrkOverlay() {
         if (!abrkOverlay) return;
         try {
             const mode = autoBrakeModes[autoBrakeIndex];
             abrkOverlay.innerHTML = `ABRK<br/>${mode}`;
-
             const instrumentsVisible = areInstrumentsVisible();
 
-            // Hide if DISARM OR instruments not visible
             if (mode === "DISARM" || !instrumentsVisible) {
                 abrkOverlay.style.display = 'none';
             } else {
                 abrkOverlay.style.display = 'block';
             }
         } catch (e) {
-            // ignore
+            return;
         }
     }
 
-    // Monitor instrument visibility changes
+
     function startVisibilityMonitor() {
         setInterval(() => {
             updateAbrkOverlay();
-        }, 500); // Check every 500ms for visibility changes
+        }, 500);
     }
+
 
     function autoDisarm() {
-        const animm = geofs.aircraft.instance.animationValue;
-        const brkMode = autoBrakeModes[autoBrakeIndex];
-
-        // Determine how much brake force auto-brakes are currently applying
-        let expectedAutoBrake = 0;
-        switch (brkMode) {
-            case "RTO": expectedAutoBrake = rtoActive ? 1 : 0; break;
-            case "1": expectedAutoBrake = 0.2; break;
-            case "2": expectedAutoBrake = 0.4; break;
-            case "3": expectedAutoBrake = 0.6; break;
-            case "4": expectedAutoBrake = 0.8; break;
-            case "MAX": expectedAutoBrake = 1; break;
-            default: expectedAutoBrake = 0; break;
-        }
-
-        // Manual brakes are applied only if the pilot presses harder than auto-brake
-        const manualBrakeApplied = controls.brakes > expectedAutoBrake;
-
-        // Auto-disarm if manual brakes detected
-        if (brkMode !== "DISARM" && manualBrakeApplied) {
-            autoBrakeIndex = autoBrakeModes.indexOf("DISARM");
-            isAutoBrakeArmed = false;
-            rtoActive = false;
-            updateAbrkOverlay();
-            console.log("[AUTO BRK] Auto-DISARM (Manual brakes applied)");
+        try {
+            const brkMode = autoBrakeModes[autoBrakeIndex];
+            if (!brkMode || brkMode === "DISARM") return;
+            const b = controls.brakes || 0;
+            const thresholds = { "1": 0.21, "2": 0.41, "3": 0.61, "4": 0.81 };
+            if (thresholds[brkMode] && b > thresholds[brkMode]) {
+                autoBrakeIndex = autoBrakeModes.indexOf("DISARM");
+                isAutoBrakeArmed = false;
+                rtoActive = false;
+                updateAbrkOverlay();
+                info('AutoBrake auto-disarmed due to pilot braking');
+            }
+        } catch (e) {
+            log('autoDisarm error', e);
         }
     }
 
-    // INIT
+
     async function init() {
         await waitForGeoFS();
 
-
-        // Create custom overlays (not using GeoFS instrument system at all)
         createCustomOverlays();
-        
         updateAbrkOverlay();
-
-        // Start monitoring visibility
         startVisibilityMonitor();
 
-        // Run the touchdown logic periodically
-        setInterval(checkTouchdownLogic, 100);
+
+        setInterval(checkTouchdownLogic, CHECK_INTERVAL_MS);
         setInterval(autoDisarm, 50);
 
-        // Key bindings
+
         document.addEventListener("keydown", e => {
 
-            // Ctrl + F11 -> toggle autobrake modes
             if (e.ctrlKey && e.key === "F11") {
                 e.preventDefault();
                 toggleAutoBrake();
             }
         });
 
-        // Keep the original "loaded" notification
-        showNotification("AUTO BRK Loaded!", "info", 4000);
-        console.log("[SCRIPT] Full realistic system online. V8.6");
+        showNotification("AUTO BRK Loaded! (v8.7)", "info", 4000);
+        info('Full realistic system online. V8.7');
     }
 
     init();
+
 })();
